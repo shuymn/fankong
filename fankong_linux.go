@@ -103,10 +103,14 @@ func (app *App) Run(ctx context.Context) error {
 	}
 	log.Printf("[info] %dC / %d%%\n", temp, fan)
 	if temp > app.config.TargetTemp && fan < app.config.MaxFanSpeed {
-		app.setGPUTargetFanSpeed(ctx, fan+1)
+		if err = app.setGPUTargetFanSpeed(ctx, fan+1); err != nil {
+			return err
+		}
 	}
 	if temp < app.config.TargetTemp && fan > app.config.MinFanSpeed {
-		app.setGPUTargetFanSpeed(ctx, fan-1)
+		if err = app.setGPUTargetFanSpeed(ctx, fan-1); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -149,21 +153,6 @@ func (app *App) setGPUTargetFanSpeed(ctx context.Context, speed uint) error {
 		fmt.Sprintf("[fan:0]/GPUTargetFanSpeed=%d", speed),
 	)
 	return err
-}
-
-func (app *App) queryIntValueFromNvidiaSettings(ctx context.Context, query string) (int, error) {
-	res, err := app.execNvidiaSettings(ctx, "-q", query, "-t")
-	if err != nil {
-		return 0, err
-	}
-
-	out := strings.TrimSuffix(string(res), "\n")
-	value, err := strconv.ParseInt(out, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(value), nil
 }
 
 func (app *App) execNvidiaSettings(ctx context.Context, arg ...string) ([]byte, error) {
