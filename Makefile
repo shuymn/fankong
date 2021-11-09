@@ -18,6 +18,9 @@ deps:
 test:
 	go test -race ./...
 
+lint:
+	golangci-lint run
+
 .PHONY: clean
 clean:
 	@[ ! -f bin/fankong ] || rm bin/fankong
