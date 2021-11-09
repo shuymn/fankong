@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -101,18 +100,36 @@ func (app *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("[info] %dC / %d%%\n", temp, fan)
+
+	fmt.Printf("[info] %dC / %d%%\n", temp, fan)
+
+	if fan < app.config.MinFanSpeed {
+		if err = app.changeFanSpeed(ctx, fan, app.config.MinFanSpeed); err != nil {
+			return err
+		}
+	}
+	if fan > app.config.MaxFanSpeed {
+		if err = app.changeFanSpeed(ctx, fan, app.config.MaxFanSpeed); err != nil {
+			return err
+		}
+	}
 	if temp > app.config.TargetTemp && fan < app.config.MaxFanSpeed {
-		if err = app.setGPUTargetFanSpeed(ctx, fan+1); err != nil {
+		if err = app.changeFanSpeed(ctx, fan, fan+1); err != nil {
 			return err
 		}
 	}
 	if temp < app.config.TargetTemp && fan > app.config.MinFanSpeed {
-		if err = app.setGPUTargetFanSpeed(ctx, fan-1); err != nil {
+		if err = app.changeFanSpeed(ctx, fan, fan-1); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (app *App) changeFanSpeed(ctx context.Context, curr uint, next uint) error {
+	fmt.Printf("[info] change fan speed: %d%% -> %d%%\n", curr, next)
+
+	return app.setGPUTargetFanSpeed(ctx, next)
 }
 
 func (app *App) getGPUCoreTemp(ctx context.Context) (int, error) {
